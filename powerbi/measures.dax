@@ -1,0 +1,119 @@
+// Auto Evidence 360 semantic measures
+// Create a dedicated _Measures table, then assign these measures to display folders.
+
+Complaint Reports =
+DISTINCTCOUNT ( 'gold_fact_complaint'[complaint_id] )
+
+Severe Complaint Reports =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_fact_complaint'[complaint_id] ),
+    'gold_fact_complaint'[severe_report_flag] = TRUE ()
+)
+
+Severe Complaint Share =
+DIVIDE ( [Severe Complaint Reports], [Complaint Reports] )
+
+Crash-Reported Complaints =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_fact_complaint'[complaint_id] ),
+    'gold_fact_complaint'[crash_reported_flag] = TRUE ()
+)
+
+Fire-Reported Complaints =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_fact_complaint'[complaint_id] ),
+    'gold_fact_complaint'[fire_reported_flag] = TRUE ()
+)
+
+Recall Campaigns =
+DISTINCTCOUNT ( 'gold_fact_recall'[campaign_number] )
+
+Do-Not-Drive Recall Campaigns =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_fact_recall'[campaign_number] ),
+    'gold_fact_recall'[do_not_drive] = TRUE ()
+)
+
+Park-Outside Recall Campaigns =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_fact_recall'[campaign_number] ),
+    'gold_fact_recall'[park_outside] = TRUE ()
+)
+
+Potential Units Affected (Campaign Estimate) =
+SUMX (
+    VALUES ( 'gold_fact_recall'[campaign_number] ),
+    CALCULATE ( MAX ( 'gold_fact_recall'[potential_units_affected_int] ) )
+)
+
+Investigations =
+DISTINCTCOUNT ( 'gold_fact_investigation'[investigation_number] )
+
+Open Investigations =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_fact_investigation'[investigation_number] ),
+    'gold_fact_investigation'[open_investigation_flag] = TRUE ()
+)
+
+Manufacturer Communication Documents =
+DISTINCTCOUNT ( 'gold_fact_manufacturer_communication'[document_id] )
+
+Tested NCAP Variants =
+DISTINCTCOUNT ( 'gold_fact_ncap_variant'[ncap_variant_key] )
+
+Median Overall NCAP Stars =
+MEDIAN ( 'gold_fact_ncap_variant'[overall_stars] )
+
+EPA Vehicle Variants =
+DISTINCTCOUNT ( 'gold_fact_fuel_economy_variant'[epa_vehicle_id] )
+
+Median Combined MPG =
+MEDIAN ( 'gold_fact_fuel_economy_variant'[combined_mpg] )
+
+Median Annual Fuel Cost =
+MEDIAN ( 'gold_fact_fuel_economy_variant'[annual_fuel_cost] )
+
+Vehicle Keys =
+DISTINCTCOUNT ( 'gold_dim_vehicle'[vehicle_key] )
+
+Critical Review Vehicles =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_vehicle_review_queue'[vehicle_key] ),
+    'gold_vehicle_review_queue'[review_priority] = "CRITICAL"
+)
+
+High Review Vehicles =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_vehicle_review_queue'[vehicle_key] ),
+    'gold_vehicle_review_queue'[review_priority] = "HIGH"
+)
+
+Review Queue Vehicles =
+DISTINCTCOUNT ( 'gold_vehicle_review_queue'[vehicle_key] )
+
+Reference Exact-Match Vehicle Keys =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_dim_vehicle'[vehicle_key] ),
+    'gold_dim_vehicle'[reference_exact_match_flag] = TRUE ()
+)
+
+Reference Exact-Match Rate =
+DIVIDE ( [Reference Exact-Match Vehicle Keys], [Vehicle Keys] )
+
+Average Evidence Sources per Vehicle =
+AVERAGE ( 'gold_agg_vehicle_evidence'[evidence_source_count] )
+
+Registration Records =
+COUNTROWS ( 'gold_fact_state_registration' )
+
+Registered Vehicles =
+SUM ( 'gold_fact_state_registration'[registered_vehicles] )
+
+Failed Data Quality Checks =
+CALCULATE (
+    COUNTROWS ( 'gold_data_quality_checks' ),
+    'gold_data_quality_checks'[passed] = FALSE ()
+)
+
+Data Quality Status =
+IF ( [Failed Data Quality Checks] = 0, "PASS", "STOP AND INVESTIGATE" )
