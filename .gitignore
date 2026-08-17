@@ -1,0 +1,13 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Reproducible source and derived data are generated locally, not stored in Git.
+data/raw/
+data/fabric_upload/*.csv.gz
+analysis/output/vehicle_evidence_baseline.csv.gz
+
+# Keep only the retirement note from the superseded synthetic prototype.
+archive/synthetic-prototype/*
+!archive/synthetic-prototype/README.md

@@ -1,0 +1,140 @@
+{
+  "project": "Auto Evidence 360",
+  "sources": [
+    {
+      "id": "nhtsa_complaints_2020_2024",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#complaints",
+      "url": "https://static.nhtsa.gov/odi/ffdd/cmpl/COMPLAINTS_RECEIVED_2020-2024.zip",
+      "format": "zip",
+      "refresh": "daily source snapshot",
+      "grain": "one consumer complaint/component record"
+    },
+    {
+      "id": "nhtsa_complaints_2025_2026",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#complaints",
+      "url": "https://static.nhtsa.gov/odi/ffdd/cmpl/COMPLAINTS_RECEIVED_2025-2026.zip",
+      "format": "zip",
+      "refresh": "daily source snapshot",
+      "grain": "one consumer complaint/component record"
+    },
+    {
+      "id": "nhtsa_complaints_dictionary",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#complaints",
+      "url": "https://static.nhtsa.gov/odi/ffdd/cmpl/CMPL.txt",
+      "format": "txt",
+      "refresh": "when source schema changes",
+      "grain": "complaints schema documentation"
+    },
+    {
+      "id": "nhtsa_recalls_post_2010",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#recalls",
+      "url": "https://static.nhtsa.gov/odi/ffdd/rcl/FLAT_RCL_POST_2010.zip",
+      "format": "zip",
+      "refresh": "daily",
+      "grain": "one recall campaign/product/component record"
+    },
+    {
+      "id": "nhtsa_recalls_dictionary",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#recalls",
+      "url": "https://static.nhtsa.gov/odi/ffdd/rcl/RCL.txt",
+      "format": "txt",
+      "refresh": "when source schema changes",
+      "grain": "recalls schema documentation"
+    },
+    {
+      "id": "nhtsa_investigations_all",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#investigations",
+      "url": "https://static.nhtsa.gov/odi/ffdd/inv/FLAT_INV.zip",
+      "format": "zip",
+      "refresh": "daily",
+      "grain": "one investigation/vehicle-component record"
+    },
+    {
+      "id": "nhtsa_investigations_dictionary",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#investigations",
+      "url": "https://static.nhtsa.gov/odi/ffdd/inv/INV.txt",
+      "format": "txt",
+      "refresh": "when source schema changes",
+      "grain": "investigations schema documentation"
+    },
+    {
+      "id": "nhtsa_tsbs_2020_2024",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#manufacturer-communications",
+      "url": "https://static.nhtsa.gov/odi/ffdd/tsbs/TSBS_RECEIVED_2020-2024.zip",
+      "format": "zip",
+      "refresh": "daily source snapshot",
+      "grain": "one manufacturer communication/vehicle record"
+    },
+    {
+      "id": "nhtsa_tsbs_2025_2026",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#manufacturer-communications",
+      "url": "https://static.nhtsa.gov/odi/ffdd/tsbs/TSBS_RECEIVED_2025-2026.zip",
+      "format": "zip",
+      "refresh": "daily source snapshot",
+      "grain": "one manufacturer communication/vehicle record"
+    },
+    {
+      "id": "nhtsa_tsbs_dictionary",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#manufacturer-communications",
+      "url": "https://static.nhtsa.gov/odi/ffdd/tsbs/TSBS.txt",
+      "format": "txt",
+      "refresh": "when source schema changes",
+      "grain": "manufacturer communications schema documentation"
+    },
+    {
+      "id": "nhtsa_ncap_ratings",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#ratings",
+      "url": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data.csv",
+      "format": "csv",
+      "refresh": "annual",
+      "grain": "one NCAP-tested vehicle variant"
+    },
+    {
+      "id": "nhtsa_ncap_dictionary",
+      "publisher": "National Highway Traffic Safety Administration",
+      "landing_page": "https://www.nhtsa.gov/nhtsa-datasets-and-apis#ratings",
+      "url": "https://static.nhtsa.gov/nhtsa/downloads/Safercar/Safercar_data_READ_ME_file.txt",
+      "format": "txt",
+      "refresh": "when source schema changes",
+      "grain": "NCAP schema documentation"
+    },
+    {
+      "id": "epa_fuel_economy_vehicles",
+      "publisher": "U.S. Department of Energy and U.S. Environmental Protection Agency",
+      "landing_page": "https://www.fueleconomy.gov/feg/ws/index.shtml",
+      "url": "https://www.fueleconomy.gov/feg/epadata/vehicles.csv.zip",
+      "format": "zip",
+      "refresh": "periodic",
+      "grain": "one tested vehicle configuration"
+    },
+    {
+      "id": "fhwa_state_registrations",
+      "publisher": "Federal Highway Administration",
+      "landing_page": "https://catalog.data.gov/dataset/motor-vehicle-registrations-2000-2023-mv-1",
+      "url": "https://data.transportation.gov/api/views/4dra-vxq7/rows.csv?accessType=DOWNLOAD",
+      "format": "csv",
+      "refresh": "annual",
+      "grain": "one state/year registration measure"
+    },
+    {
+      "id": "fred_used_vehicle_cpi",
+      "publisher": "U.S. Bureau of Labor Statistics via FRED",
+      "landing_page": "https://fred.stlouisfed.org/series/CUSR0000SETA02",
+      "url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CUSR0000SETA02&cosd=2000-01-01",
+      "format": "csv",
+      "refresh": "monthly",
+      "grain": "one month"
+    }
+  ]
+}

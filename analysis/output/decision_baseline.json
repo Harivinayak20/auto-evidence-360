@@ -1,0 +1,40 @@
+{
+  "project": "Auto Evidence 360",
+  "generated_at_utc": "2026-08-17T20:07:26.513963+00:00",
+  "source_manifest_created_at_utc": "2026-08-17T19:47:25.589748+00:00",
+  "purpose": "Independent local baseline for Fabric Gold and Power BI reconciliation",
+  "vehicle_keys": 82415,
+  "reference_exact_match_vehicle_keys": 33999,
+  "reference_exact_match_rate": 0.4125341260692835,
+  "priority_counts": {
+    "CRITICAL": 1355,
+    "HIGH": 2222,
+    "MONITOR": 38883,
+    "REVIEW": 39955
+  },
+  "reason_counts": {
+    "At least one do-not-drive recall campaign": 872,
+    "At least one open NHTSA investigation": 1806,
+    "At least one park-outside recall campaign": 483,
+    "Complaint reports meet review threshold": 200,
+    "Manufacturer communication volume meets review threshold": 3052,
+    "Minimum-volume complaint signal with multiple severe reports": 416,
+    "No current rule crossed": 38883,
+    "Recall campaign evidence exists": 36703
+  },
+  "business_entity_counts": {
+    "complaint_reports": 122155,
+    "do_not_drive_campaigns": 1373,
+    "epa_variants": 50242,
+    "investigations": 28537,
+    "manufacturer_documents": 554854,
+    "ncap_tested_variants": 17156,
+    "open_investigations": 2607,
+    "park_outside_campaigns": 635,
+    "recall_campaigns": 92783,
+    "severe_complaint_reports": 6967
+  },
+  "output_file": "analysis/output/vehicle_evidence_baseline.csv.gz",
+  "output_sha256": "36d5eb0b2a75513cd13ff6d44a054abdd86a806b5e59c0b789f4b52171d8c85d",
+  "interpretation": "Counts are public-record evidence signals and review rules, not make/model reliability rates."
+}
