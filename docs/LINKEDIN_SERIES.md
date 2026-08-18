@@ -27,8 +27,8 @@ Story:
 
 - Show the Fabric Bronze-Silver-Gold architecture.
 - Explain normalized make/model/year in plain language.
-- Share verified exact-reference coverage: 64.86% complaints, 15.47% recalls, 33.55% investigations, and 33.24% manufacturer communications.
-- Explain why unresolved names enter an alias review queue instead of a hidden fuzzy match.
+- Share verified exact-reference coverage with both published measures: 64.86% complaints, 15.47% recalls, 33.24% manufacturer communications, and 30.91% investigations across all valid keys (33.55% among EPA/NCAP-era-eligible keys, model year 1984 or later).
+- Explain why unresolved names enter a prioritized alias work queue (P0/P1/P2) instead of a hidden fuzzy match.
 
 Proof artifact: executed quality notebook plus entity-resolution workbench.
 
@@ -46,6 +46,7 @@ Story:
 - Contrast raw recall rows with distinct campaigns.
 - Show the DAX measure that takes one campaign estimate before summing.
 - Explain why complaints count distinct reports and service communications count distinct documents.
+- Drop one verifiable finding: 122,313 vehicle complaint reports in the snapshot, of which 11,104 (about 9%) carry a crash, fire, injury, or death indicator.
 
 Proof artifact: semantic model diagram, metric catalog, and reconciliation visual.
 
@@ -62,7 +63,8 @@ Story:
 - Walk through Critical, High, Review, and Monitor rules.
 - Show the plain-language reason attached to every queued vehicle.
 - Demonstrate drill-through from priority to campaign, investigation, complaint, and document evidence.
-- State that thresholds are review rules, not federal standards or automated rejection decisions.
+- Drop one verifiable finding: 201 distinct do-not-drive campaigns across vehicle recalls, with Ford, Mazda, and BMW leading, and a park-outside cluster led by Hyundai (19) and Kia (14).
+- State that thresholds are review rules (`rule_version = portfolio_v1`, `threshold_validation_status = unvalidated`), not federal standards or automated rejection decisions.
 
 Proof artifact: Executive Evidence Command Center and Vehicle Evidence 360 drill-through.
 
@@ -78,7 +80,7 @@ Story:
 
 - Show manifest expected-versus-actual counts, schema status, checksums, alias coverage, and orphan-key tests.
 - Demonstrate a controlled failure and the `STOP AND INVESTIGATE` report state.
-- Present three validated findings only after reconciliation.
+- Present three validated findings only after reconciliation (201 do-not-drive campaigns; the Hyundai/Kia park-outside cluster; 223 open investigations, including 107 records with a blank make that the pipeline surfaces rather than hides).
 - End with what the sources cannot prove: no universal reliability rate, VIN remedy status, or causal claim.
 
 Proof artifact: Data Trust and Provenance page plus a 60-90 second demo.

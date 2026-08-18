@@ -45,6 +45,14 @@ dim_vehicle = (
         F.max(F.col("reference_exact_match_flag").cast("int")).cast("boolean").alias(
             "reference_exact_match_flag"
         ),
+        F.max(F.col("reference_year_eligible").cast("int")).cast("boolean").alias(
+            "reference_year_eligible"
+        ),
+        F.first("reference_match_status", ignorenulls=True).alias("reference_match_status"),
+        F.first("rule_version", ignorenulls=True).alias("rule_version"),
+        F.first("threshold_validation_status", ignorenulls=True).alias(
+            "threshold_validation_status"
+        ),
     )
     .withColumnRenamed("canonical_vehicle_key", "vehicle_key")
     .withColumn("vehicle_label", F.concat_ws(" ", "model_year", "make", "model"))
@@ -359,6 +367,50 @@ evidence_mart = (
         )
         .otherwise(F.lit("No current rule crossed")),
     )
+    .withColumn(
+        "alias_priority",
+        F.when(
+            F.col("reference_exact_match_flag"),
+            F.lit("NONE"),
+        )
+        .when(
+            (F.col("do_not_drive_campaigns") > 0)
+            | (F.col("park_outside_campaigns") > 0)
+            | (F.col("open_investigations") > 0),
+            F.lit("P0"),
+        )
+        .when(
+            (F.col("source_system_count") >= 2)
+            | (F.col("complaint_reports") >= 10)
+            | (F.col("severe_complaint_reports") >= 3)
+            | (F.col("recall_campaigns") > 0)
+            | (F.col("manufacturer_documents") >= 10),
+            F.lit("P1"),
+        )
+        .otherwise(F.lit("P2")),
+    )
+    .withColumn(
+        "alias_reason",
+        F.when(
+            F.col("reference_exact_match_flag"),
+            F.lit("Exact EPA or NCAP reference match; no alias review required"),
+        )
+        .when(
+            (F.col("do_not_drive_campaigns") > 0)
+            | (F.col("park_outside_campaigns") > 0)
+            | (F.col("open_investigations") > 0),
+            F.lit("Unresolved identity with do-not-drive, park-outside, or open-investigation evidence"),
+        )
+        .when(
+            (F.col("source_system_count") >= 2)
+            | (F.col("complaint_reports") >= 10)
+            | (F.col("severe_complaint_reports") >= 3)
+            | (F.col("recall_campaigns") > 0)
+            | (F.col("manufacturer_documents") >= 10),
+            F.lit("Unresolved identity with multi-source or high-signal evidence"),
+        )
+        .otherwise(F.lit("Unresolved low-signal identity; aggregate backlog only")),
+    )
 )
 write_gold(evidence_mart, "gold_agg_vehicle_evidence")
 
@@ -377,8 +429,44 @@ review_queue = evidence_mart.filter(F.col("review_priority") != "MONITOR").selec
     "ncap_tested_variants",
     "epa_variants",
     "reference_exact_match_flag",
+    "reference_year_eligible",
+    "reference_match_status",
+    "rule_version",
+    "threshold_validation_status",
 )
 write_gold(review_queue, "gold_vehicle_review_queue")
+
+# %% [markdown]
+# ## Alias work queue
+# The complete unresolved backlog stays in Silver. Gold publishes only actionable
+# P0 and P1 identities; P2 low-signal backlog appears as an aggregate count in the
+# evidence mart, never as individual queue entries.
+
+# %%
+alias_work_queue = (
+    evidence_mart.filter(
+        (F.col("reference_match_status") == "UNRESOLVED")
+        & F.col("alias_priority").isin("P0", "P1")
+    )
+    .select(
+        "vehicle_key",
+        "vehicle_label",
+        "alias_priority",
+        "alias_reason",
+        "source_system_count",
+        "complaint_reports",
+        "severe_complaint_reports",
+        "recall_campaigns",
+        "do_not_drive_campaigns",
+        "park_outside_campaigns",
+        "open_investigations",
+        "manufacturer_documents",
+        "rule_version",
+        "threshold_validation_status",
+    )
+    .withColumn("review_status", F.lit("UNREVIEWED"))
+)
+write_gold(alias_work_queue, "gold_alias_work_queue")
 
 # %% [markdown]
 # ## Reconciliation and referential-integrity checks
@@ -407,6 +495,9 @@ for table_name, frame in fact_checks:
         .count()
     )
     quality_rows.append((f"{table_name.upper()}_ORPHAN_KEYS", orphan_count, 0, orphan_count == 0))
+
+alias_queue_p2_count = alias_work_queue.filter(F.col("alias_priority") == "P2").count()
+quality_rows.append(("ALIAS_QUEUE_CONTAINS_ONLY_P0_P1", alias_queue_p2_count, 0, alias_queue_p2_count == 0))
 
 quality = spark.createDataFrame(
     quality_rows, ["check_name", "actual_value", "expected_value", "passed"]

@@ -43,7 +43,7 @@ flowchart TB
 | Storage | OneLake Lakehouse | Store approved extracts and managed Delta tables | Preserve prior successful tables until replacement succeeds |
 | Bronze | Notebook 01 | Validate manifest, schema, row count, and attach provenance | Fail on missing, changed, or incomplete input |
 | Silver | Notebook 02 | Type, deduplicate, normalize, classify topics, build vehicle bridge | Keep unresolved identities in a visible queue |
-| Gold | Notebook 03 | Publish dimensions, facts, evidence mart, review queue, reconciliation | Fail on duplicate dimensions or orphan fact keys |
+| Gold | Notebook 03 | Publish dimensions, facts, evidence mart, review queue, alias work queue, reconciliation | Fail on duplicate dimensions or orphan fact keys |
 | Semantic | Direct Lake model | Relationships, explicit DAX, descriptions, formatting | Do not publish ambiguous implicit measures |
 | Report | Power BI | Executive queue, diagnostics, evidence, coverage, trust | Show caveat and latest-source context on every page |
 
@@ -64,7 +64,10 @@ flowchart TB
 - Complaint severity is calculated at report level from source flags and counts.
 - Official/manufacturer descriptions receive one transparent keyword topic. This is explainable classification, not a learned defect prediction.
 - `vehicle_key = SHA256(normalized make || normalized model || model year)`.
+- Valid model years span 1900 through current year plus one, consistently across local profiling, the local validation baseline, and Fabric.
+- Only vehicle product rows are conformed (product_type = V): 180,526 complaint rows and 217,702 recall rows.
 - EPA and NCAP form the reference key set. Exact reference matches are high confidence; other source identities remain unresolved to the reference and enter `silver_vehicle_alias_review_queue`.
+- Each bridge row carries `reference_year_eligible` (model year 1984 or later), `reference_match_status` (MATCHED/UNRESOLVED), `rule_version` (portfolio_v1), and `threshold_validation_status` (unvalidated).
 - Source make/model text is preserved for audit. No fuzzy result is silently accepted.
 
 ### Gold
@@ -89,9 +92,10 @@ Facts:
 
 Decision outputs:
 
-- `gold_agg_vehicle_evidence`: one vehicle identity with counts, coverage, context, priority, and reason.
+- `gold_agg_vehicle_evidence`: one vehicle identity with counts, coverage, context, priority, reason, and alias priority.
 - `gold_vehicle_review_queue`: non-monitor vehicles for human review.
-- `gold_data_quality_checks`: uniqueness and referential-integrity results.
+- `gold_alias_work_queue`: unresolved P0/P1 identities only; P2 stays as an aggregate count.
+- `gold_data_quality_checks`: uniqueness, referential-integrity, and alias-queue results.
 
 ## Entity-resolution design
 
@@ -101,7 +105,15 @@ The bridge separates three questions that are often incorrectly merged:
 2. **Does that normalized identity exactly match an EPA or NCAP reference?**
 3. **Should a reviewed alias map two different source strings to one canonical vehicle?**
 
-Only question 2 is automated in release 1. Question 3 needs an approved mapping with reviewer, timestamp, rationale, before/after key, and match confidence. This creates measurable work instead of hiding uncertainty in a fuzzy-match threshold.
+Only question 2 is automated in release 1, and it is published as two coverage measures: all valid keys, and EPA/NCAP-era-eligible keys (model year 1984 or later). Question 3 needs an approved mapping with reviewer, timestamp, rationale, before/after key, and match confidence. This creates measurable work instead of hiding uncertainty in a fuzzy-match threshold.
+
+Gold publishes the unresolved backlog as a prioritized work queue:
+
+- `P0`: unresolved identity with do-not-drive, park-outside, or open-investigation evidence.
+- `P1`: unresolved identity with multi-source or high-signal evidence.
+- `P2`: unresolved low-signal backlog, shown only as an aggregate count.
+
+The operational review queue is independent of EPA/NCAP enrichment status: a vehicle can enter the review queue without ever matching a reference key.
 
 ## Orchestration
 
@@ -133,7 +145,7 @@ Release 1 uses complete snapshot replacement because the public bulk files are s
 - Executed data-quality notebook.
 - Fabric workspace lineage.
 - Controlled Bronze failure and successful run.
-- Entity-match coverage and alias-review queue.
+- Entity-match coverage (all-valid and era-eligible) and the P0/P1/P2 alias work queue.
 - Lakehouse Gold tables and relationship diagram.
 - DAX campaign-deduplication example.
 - Power BI drill-through from priority to source evidence.

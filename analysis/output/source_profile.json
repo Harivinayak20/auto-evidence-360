@@ -1,6 +1,11 @@
 {
-  "generated_at_utc": "2026-08-17T19:51:01.874852+00:00",
+  "generated_at_utc": "2026-08-18T03:15:58.637994+00:00",
   "profile_scope": "downloaded public source files; no row content emitted",
+  "model_year_window": {
+    "min": 1900,
+    "max": 2027
+  },
+  "reference_era_start_year": 1984,
   "datasets": [
     {
       "source_id": "nhtsa_complaints",
@@ -36,11 +41,11 @@
       "distinct_business_ids": 244398,
       "rows_per_business_id": 1.0,
       "vehicle_rows": 217702,
-      "valid_vehicle_rows": 217319,
+      "valid_vehicle_rows": 217320,
       "missing_make_rate": 0.0,
       "missing_model_rate": 0.0,
-      "invalid_or_missing_year_rate": 0.001759285628979063,
-      "distinct_normalized_vehicle_keys": 39956,
+      "invalid_or_missing_year_rate": 0.0017546921939164547,
+      "distinct_normalized_vehicle_keys": 39957,
       "min_year": 1965,
       "max_year": 2027,
       "min_source_date": "20100101",
@@ -58,11 +63,11 @@
       "distinct_business_ids": 5340,
       "rows_per_business_id": 28.88558052434457,
       "vehicle_rows": 154249,
-      "valid_vehicle_rows": 144129,
+      "valid_vehicle_rows": 145928,
       "missing_make_rate": 0.008803946865133647,
       "missing_model_rate": 0.008803946865133647,
-      "invalid_or_missing_year_rate": 0.06560820491542894,
-      "distinct_normalized_vehicle_keys": 14844,
+      "invalid_or_missing_year_rate": 0.05394524437759726,
+      "distinct_normalized_vehicle_keys": 16109,
       "min_year": 1965,
       "max_year": 2026,
       "min_source_date": "19720310",
@@ -162,27 +167,47 @@
       "source_id": "nhtsa_complaints",
       "distinct_vehicle_keys": 6923,
       "exact_reference_matches": 4490,
-      "exact_match_rate": 0.6485627618084645
+      "exact_match_rate": 0.6485627618084645,
+      "era_eligible_vehicle_keys": 6923,
+      "era_eligible_exact_reference_matches": 4490,
+      "era_eligible_exact_match_rate": 0.6485627618084645
     },
     {
       "source_id": "nhtsa_recalls",
-      "distinct_vehicle_keys": 39956,
+      "distinct_vehicle_keys": 39957,
       "exact_reference_matches": 6182,
-      "exact_match_rate": 0.15472019221143257
+      "exact_match_rate": 0.15471632004404734,
+      "era_eligible_vehicle_keys": 39956,
+      "era_eligible_exact_reference_matches": 6182,
+      "era_eligible_exact_match_rate": 0.15472019221143257
     },
     {
       "source_id": "nhtsa_investigations",
-      "distinct_vehicle_keys": 14844,
+      "distinct_vehicle_keys": 16109,
       "exact_reference_matches": 4980,
-      "exact_match_rate": 0.3354890864995958
+      "exact_match_rate": 0.3091439567943386,
+      "era_eligible_vehicle_keys": 14844,
+      "era_eligible_exact_reference_matches": 4980,
+      "era_eligible_exact_match_rate": 0.3354890864995958
     },
     {
       "source_id": "nhtsa_manufacturer_communications",
       "distinct_vehicle_keys": 19472,
       "exact_reference_matches": 6473,
-      "exact_match_rate": 0.33242604765817585
+      "exact_match_rate": 0.33242604765817585,
+      "era_eligible_vehicle_keys": 19472,
+      "era_eligible_exact_reference_matches": 6473,
+      "era_eligible_exact_match_rate": 0.33242604765817585
     }
   ],
+  "union_exact_match_coverage": {
+    "all_valid_vehicle_keys": 58157,
+    "all_valid_exact_reference_matches": 9756,
+    "all_valid_exact_match_rate": 0.16775280705676016,
+    "era_eligible_vehicle_keys": 56891,
+    "era_eligible_exact_reference_matches": 9756,
+    "era_eligible_exact_match_rate": 0.1714858237682586
+  },
   "privacy_exclusions": {
     "nhtsa_complaints": [
       "CITY",

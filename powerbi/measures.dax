@@ -100,6 +100,43 @@ CALCULATE (
 Reference Exact-Match Rate =
 DIVIDE ( [Reference Exact-Match Vehicle Keys], [Vehicle Keys] )
 
+Reference Exact-Match Rate (Era-Eligible) =
+DIVIDE (
+    CALCULATE (
+        DISTINCTCOUNT ( 'gold_dim_vehicle'[vehicle_key] ),
+        'gold_dim_vehicle'[reference_exact_match_flag] = TRUE (),
+        'gold_dim_vehicle'[reference_year_eligible] = TRUE ()
+    ),
+    CALCULATE (
+        DISTINCTCOUNT ( 'gold_dim_vehicle'[vehicle_key] ),
+        'gold_dim_vehicle'[reference_year_eligible] = TRUE ()
+    )
+)
+
+Alias Work Queue P0 =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_alias_work_queue'[vehicle_key] ),
+    'gold_alias_work_queue'[alias_priority] = "P0"
+)
+
+Alias Work Queue P1 =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_alias_work_queue'[vehicle_key] ),
+    'gold_alias_work_queue'[alias_priority] = "P1"
+)
+
+Alias Backlog P2 (Aggregate) =
+CALCULATE (
+    DISTINCTCOUNT ( 'gold_agg_vehicle_evidence'[vehicle_key] ),
+    'gold_agg_vehicle_evidence'[alias_priority] = "P2"
+)
+
+Rule Version =
+MAX ( 'gold_dim_vehicle'[rule_version] )
+
+Threshold Validation Status =
+MAX ( 'gold_dim_vehicle'[threshold_validation_status] )
+
 Average Evidence Sources per Vehicle =
 AVERAGE ( 'gold_agg_vehicle_evidence'[evidence_source_count] )
 

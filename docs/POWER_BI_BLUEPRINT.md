@@ -11,6 +11,7 @@ Core relationships:
 | `gold_dim_vehicle[vehicle_key]` | each vehicle-level fact `[vehicle_key]` | 1:* | n/a |
 | `gold_dim_vehicle[vehicle_key]` | `gold_agg_vehicle_evidence[vehicle_key]` | 1:1 | n/a |
 | `gold_dim_vehicle[vehicle_key]` | `gold_vehicle_review_queue[vehicle_key]` | 1:1 optional | n/a |
+| `gold_dim_vehicle[vehicle_key]` | `gold_alias_work_queue[vehicle_key]` | 1:1 optional | n/a |
 | `gold_dim_evidence_topic[topic_key]` | complaint/recall/investigation/communication `[evidence_topic]` | 1:* | n/a |
 | `gold_dim_date[date_key]` | complaint `[received_date_key]` | 1:* | active |
 | `gold_dim_date[date_key]` | recall `[report_received_date_key]` | 1:* | active |
@@ -86,9 +87,10 @@ Decision: what tested safety and operating-cost context is available?
 
 Decision: can the joined view be trusted, and where should aliases be reviewed?
 
-- Exact-reference match rate by source system.
-- Matched versus unresolved vehicle keys.
-- Queue: source make/model/year, participating source systems, review status, reason.
+- Exact-reference match rate by source system, split into the two published measures: all valid keys and EPA/NCAP-era-eligible keys.
+- Matched versus unresolved vehicle keys, with a model-year eligibility filter.
+- Alias work queue: only P0 and P1 identities (source make/model/year, participating source systems, priority, reason, review status).
+- P2 low-signal backlog shown as one aggregate card, never as queue entries.
 - Before/after alias mapping section for manually approved mappings.
 - Coverage impact simulation: how many records and vehicle keys would an approved alias connect?
 
@@ -116,12 +118,13 @@ Decision: should this refresh be used?
 
 ## Interaction design
 
-- Global slicers: model year, make, model, evidence topic, reference-match status.
+- Global slicers: model year, make, model, evidence topic, reference-match status, reference-year eligibility.
 - Page-specific dates only. Different source dates must not be mixed under one unexplained date label.
 - Field parameter switches signal counts but retains the metric definition in a dynamic subtitle.
 - Report-page tooltips show grain, numerator, denominator, latest source date, and caveat.
 - Drill-through retains vehicle context and offers a clear back action.
 - Priority colors: dark red Critical, amber High, blue Review, gray Monitor, always paired with text/icon.
+- Rule metadata (rule_version, threshold_validation_status) appears in the Data Trust page and report tooltips.
 
 ## Visual standards
 
@@ -141,6 +144,8 @@ Decision: should this refresh be used?
 - One vehicle selection filters all vehicle-level facts but not aggregate state registrations.
 - Critical priority always traces to a qualifying source flag.
 - Unresolved reference matches are visibly labeled and excluded from reference-comparison visuals by default.
+- The alias work queue contains only P0 and P1 identities; P2 appears as an aggregate card.
+- Rule version and threshold-validation status are visible on the Data Trust page.
 - Empty NCAP/EPA context displays “not available in this source,” not zero.
 - Failed data-quality status is visible on every page through a header indicator.
 - Performance Analyzer, tab order, alt text, mobile layout, and export behavior are checked before publishing.

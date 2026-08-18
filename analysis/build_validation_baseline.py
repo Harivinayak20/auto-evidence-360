@@ -23,6 +23,11 @@ OUTPUT_CSV = OUTPUT_ROOT / "vehicle_evidence_baseline.csv.gz"
 OUTPUT_JSON = OUTPUT_ROOT / "decision_baseline.json"
 OUTPUT_MD = OUTPUT_ROOT / "decision_baseline.md"
 NON_ALPHANUMERIC = re.compile(r"[^A-Z0-9]+")
+MIN_MODEL_YEAR = 1900
+MAX_MODEL_YEAR = datetime.now().year + 1
+REFERENCE_ERA_START_YEAR = 1984
+RULE_VERSION = "portfolio_v1"
+THRESHOLD_VALIDATION_STATUS = "unvalidated"
 
 
 def normalized_text(value: str | None) -> str:
@@ -37,7 +42,7 @@ def vehicle_identity(make: str | None, model: str | None, year: str | None):
         model_year = int((year or "").strip())
     except ValueError:
         return None
-    if not normalized_make or not normalized_model or not 1900 <= model_year <= 2100:
+    if not normalized_make or not normalized_model or not MIN_MODEL_YEAR <= model_year <= MAX_MODEL_YEAR:
         return None
     label = f"{model_year} {normalized_make} {normalized_model}"
     raw_key = f"{normalized_make}||{normalized_model}||{model_year}"
@@ -138,6 +143,8 @@ def record_source(connection: sqlite3.Connection, identity, source_system: str) 
 
 def ingest_complaints(connection: sqlite3.Connection) -> None:
     for row in rows_from("complaints"):
+        if row["product_type"] != "V":
+            continue
         identity = vehicle_identity(row["source_make"], row["source_model"], row["model_year"])
         if identity is None or not row["complaint_id"]:
             continue
@@ -258,7 +265,8 @@ WITH vehicles AS (
         MIN(model_year) AS model_year,
         MIN(vehicle_label) AS vehicle_label,
         COUNT(DISTINCT source_system) AS source_system_count,
-        MAX(CASE WHEN source_system IN ('NHTSA_NCAP', 'EPA_FUEL_ECONOMY') THEN 1 ELSE 0 END) AS reference_exact_match
+        MAX(CASE WHEN source_system IN ('NHTSA_NCAP', 'EPA_FUEL_ECONOMY') THEN 1 ELSE 0 END) AS reference_exact_match,
+        MAX(CASE WHEN model_year >= {REFERENCE_ERA_START_YEAR} THEN 1 ELSE 0 END) AS reference_year_eligible
     FROM vehicle_source
     GROUP BY vehicle_key
 ),
@@ -291,6 +299,8 @@ epa AS (
 )
 SELECT
     v.*,
+    '{RULE_VERSION}' AS rule_version,
+    '{THRESHOLD_VALIDATION_STATUS}' AS threshold_validation_status,
     COALESCE(c.complaint_reports, 0) AS complaint_reports,
     COALESCE(c.severe_complaint_reports, 0) AS severe_complaint_reports,
     COALESCE(c.crash_reported_complaints, 0) AS crash_reported_complaints,
@@ -313,7 +323,11 @@ LEFT JOIN communications m USING (vehicle_key)
 LEFT JOIN ncap n USING (vehicle_key)
 LEFT JOIN epa e USING (vehicle_key)
 ORDER BY v.make, v.model, v.model_year
-"""
+""".format(
+    REFERENCE_ERA_START_YEAR=REFERENCE_ERA_START_YEAR,
+    RULE_VERSION=RULE_VERSION,
+    THRESHOLD_VALIDATION_STATUS=THRESHOLD_VALIDATION_STATUS,
+)
 
 
 def priority_and_reason(row: dict[str, int | str]):
@@ -334,16 +348,42 @@ def priority_and_reason(row: dict[str, int | str]):
     return "MONITOR", "No current rule crossed"
 
 
+def alias_priority_and_reason(row: dict[str, int | str]):
+    if row["reference_exact_match"]:
+        return "NONE", "Exact EPA or NCAP reference match; no alias review required"
+    if row["do_not_drive_campaigns"] > 0 or row["park_outside_campaigns"] > 0 or row["open_investigations"] > 0:
+        return "P0", "Unresolved identity with do-not-drive, park-outside, or open-investigation evidence"
+    if (
+        row["source_system_count"] >= 2
+        or row["complaint_reports"] >= 10
+        or row["severe_complaint_reports"] >= 3
+        or row["recall_campaigns"] > 0
+        or row["manufacturer_documents"] >= 10
+    ):
+        return "P1", "Unresolved identity with multi-source or high-signal evidence"
+    return "P2", "Unresolved low-signal identity; aggregate backlog only"
+
+
 def build_outputs(connection: sqlite3.Connection, manifest: dict) -> dict:
     OUTPUT_ROOT.mkdir(parents=True, exist_ok=True)
     cursor = connection.execute(BASELINE_QUERY)
     source_columns = [description[0] for description in cursor.description]
-    output_columns = source_columns + ["evidence_source_count", "review_priority", "review_reason"]
+    output_columns = source_columns + [
+        "evidence_source_count",
+        "reference_match_status",
+        "alias_priority",
+        "alias_reason",
+        "review_priority",
+        "review_reason",
+    ]
     priority_counts = Counter()
     reason_counts = Counter()
+    alias_priority_counts = Counter()
     totals = Counter()
     vehicle_count = 0
     reference_matches = 0
+    era_eligible_count = 0
+    era_eligible_matches = 0
 
     with gzip.open(OUTPUT_CSV, "wt", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=output_columns)
@@ -362,16 +402,24 @@ def build_outputs(connection: sqlite3.Connection, manifest: dict) -> dict:
                 ]
             )
             priority, reason = priority_and_reason(row)
+            alias_priority, alias_reason = alias_priority_and_reason(row)
             row.update(
                 evidence_source_count=evidence_source_count,
+                reference_match_status="MATCHED" if row["reference_exact_match"] else "UNRESOLVED",
+                alias_priority=alias_priority,
+                alias_reason=alias_reason,
                 review_priority=priority,
                 review_reason=reason,
             )
             writer.writerow(row)
             vehicle_count += 1
             reference_matches += int(row["reference_exact_match"])
+            if row["reference_year_eligible"]:
+                era_eligible_count += 1
+                era_eligible_matches += int(row["reference_exact_match"])
             priority_counts[priority] += 1
             reason_counts[reason] += 1
+            alias_priority_counts[alias_priority] += 1
             for metric in [
                 "complaint_reports",
                 "severe_complaint_reports",
@@ -391,11 +439,18 @@ def build_outputs(connection: sqlite3.Connection, manifest: dict) -> dict:
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "source_manifest_created_at_utc": manifest["created_at_utc"],
         "purpose": "Independent local baseline for Fabric Gold and Power BI reconciliation",
+        "model_year_window": {"min": MIN_MODEL_YEAR, "max": MAX_MODEL_YEAR},
+        "rule_version": RULE_VERSION,
+        "threshold_validation_status": THRESHOLD_VALIDATION_STATUS,
         "vehicle_keys": vehicle_count,
         "reference_exact_match_vehicle_keys": reference_matches,
         "reference_exact_match_rate": reference_matches / vehicle_count if vehicle_count else None,
+        "era_eligible_vehicle_keys": era_eligible_count,
+        "era_eligible_reference_exact_match_vehicle_keys": era_eligible_matches,
+        "era_eligible_reference_exact_match_rate": era_eligible_matches / era_eligible_count if era_eligible_count else None,
         "priority_counts": dict(sorted(priority_counts.items())),
         "reason_counts": dict(sorted(reason_counts.items())),
+        "alias_work_queue_counts": dict(sorted(alias_priority_counts.items())),
         "business_entity_counts": dict(sorted(totals.items())),
         "output_file": str(OUTPUT_CSV.relative_to(PROJECT_ROOT)),
         "output_sha256": hashlib.sha256(OUTPUT_CSV.read_bytes()).hexdigest(),
@@ -407,6 +462,7 @@ def build_outputs(connection: sqlite3.Connection, manifest: dict) -> dict:
 
 def write_markdown(summary: dict) -> None:
     priorities = summary["priority_counts"]
+    aliases = summary["alias_work_queue_counts"]
     entities = summary["business_entity_counts"]
     lines = [
         "# Decision Baseline",
@@ -415,8 +471,15 @@ def write_markdown(summary: dict) -> None:
         "",
         f"- {summary['vehicle_keys']:,} normalized make/model/year keys are represented across the approved sources.",
         f"- {priorities.get('CRITICAL', 0):,} keys meet a Critical review rule and {priorities.get('HIGH', 0):,} meet a High rule.",
-        f"- {summary['reference_exact_match_rate']:.2%} of unioned keys appear in the EPA or NCAP reference set.",
+        f"- {summary['reference_exact_match_rate']:.2%} of unioned keys exactly match the EPA or NCAP reference; {summary['era_eligible_reference_exact_match_rate']:.2%} of EPA/NCAP-era-eligible keys (model year {REFERENCE_ERA_START_YEAR} or later) match.",
+        "- The operational evidence queue is independent of EPA/NCAP enrichment status.",
         "- These are public-record evidence signals and operating rules, not reliability rates.",
+        "",
+        "## Metadata",
+        "",
+        f"- Rule version: `{RULE_VERSION}`",
+        f"- Threshold validation status: `{THRESHOLD_VALIDATION_STATUS}` (pending stakeholder validation)",
+        f"- Model-year window: {MIN_MODEL_YEAR} through {MAX_MODEL_YEAR}",
         "",
         "## Review priority",
         "",
@@ -427,6 +490,16 @@ def write_markdown(summary: dict) -> None:
         lines.append(f"| {priority.title()} | {priorities.get(priority, 0):,} |")
     lines.extend(
         [
+            "",
+            "## Alias work queue (unresolved identities only)",
+            "",
+            "The complete unresolved backlog stays in Silver. Gold publishes an actionable work queue:",
+            "",
+            "| Alias priority | Vehicle keys |",
+            "|---|---:|",
+            f"| P0: unresolved with do-not-drive, park-outside, or open-investigation evidence | {aliases.get('P0', 0):,} |",
+            f"| P1: unresolved with multi-source or high-signal evidence | {aliases.get('P1', 0):,} |",
+            f"| P2: unresolved low-signal backlog (aggregate only) | {aliases.get('P2', 0):,} |",
             "",
             "## Distinct business entities after grain correction",
             "",

@@ -1,3 +1,10 @@
+"""Full local data-contract tests.
+
+These tests require the ignored bulk data package (data/raw plus the
+data/fabric_upload extracts). They are skipped automatically on a clean
+clone; see test_repo_contract.py for the always-on repository contract.
+"""
+
 import csv
 import gzip
 import hashlib
@@ -9,7 +16,8 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 UPLOAD_ROOT = PROJECT_ROOT / "data" / "fabric_upload"
 MANIFEST_PATH = UPLOAD_ROOT / "manifest.json"
-PROFILE_PATH = PROJECT_ROOT / "analysis" / "output" / "source_profile.json"
+
+DATA_PACKAGE_PRESENT = (UPLOAD_ROOT / "complaints.csv.gz").is_file()
 
 
 def sha256_file(path: Path) -> str:
@@ -20,15 +28,12 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+@unittest.skipUnless(DATA_PACKAGE_PRESENT, "extract package not present; run download and prepare locally")
 class RealDataContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
         cls.extracts = {item["table_name"]: item for item in cls.manifest["extracts"]}
-
-    def test_seven_real_extracts_total_1411783_rows(self):
-        self.assertEqual(7, len(self.extracts))
-        self.assertEqual(1_411_783, sum(item["rows"] for item in self.extracts.values()))
 
     def test_extract_headers_and_sha256_match_manifest(self):
         for extract in self.extracts.values():
@@ -39,25 +44,21 @@ class RealDataContractTests(unittest.TestCase):
                 header = next(csv.reader(handle))
             self.assertEqual(extract["columns"], header, path.name)
 
-    def test_complaint_cloud_extract_excludes_sensitive_fields(self):
-        complaint_columns = {column.lower() for column in self.extracts["complaints"]["columns"]}
-        forbidden = {
-            "complaint_description",
-            "vin",
-            "vin_prefix",
-            "city",
-            "dealer_name",
-            "dealer_phone",
-            "vehicle_operator",
-        }
-        self.assertTrue(forbidden.isdisjoint(complaint_columns))
+    def test_vehicle_only_complaint_rows_reconcile_to_silver_target(self):
+        vehicle_complaint_rows = 0
+        with gzip.open(UPLOAD_ROOT / "complaints.csv.gz", "rt", encoding="utf-8-sig", newline="") as handle:
+            for row in csv.DictReader(handle):
+                if row["product_type"] == "V":
+                    vehicle_complaint_rows += 1
+        self.assertEqual(180_526, vehicle_complaint_rows)
 
-    def test_profile_reconciles_to_upload_manifest(self):
-        profile = json.loads(PROFILE_PATH.read_text(encoding="utf-8"))
-        profiled_rows = sum(item["rows"] for item in profile["datasets"])
-        manifest_rows = sum(item["rows"] for item in self.extracts.values())
-        self.assertEqual(manifest_rows, profiled_rows)
-        self.assertEqual(0, sum(item["malformed_rows"] for item in profile["datasets"]))
+    def test_vehicle_only_recall_rows_reconcile_to_silver_target(self):
+        vehicle_recall_rows = 0
+        with gzip.open(UPLOAD_ROOT / "recalls.csv.gz", "rt", encoding="utf-8-sig", newline="") as handle:
+            for row in csv.DictReader(handle):
+                if row["product_type"] == "V":
+                    vehicle_recall_rows += 1
+        self.assertEqual(217_702, vehicle_recall_rows)
 
 
 if __name__ == "__main__":

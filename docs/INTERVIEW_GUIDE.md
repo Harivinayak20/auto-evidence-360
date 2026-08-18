@@ -29,7 +29,7 @@
 
 ## Explain the hardest part
 
-> Different sources use different names and levels of detail for the same vehicle. I first created a deterministic normalized key. Then I measured exact matches against EPA and NCAP references. I did not automatically accept fuzzy matches because a wrong vehicle join can create a confident but false dashboard. Instead, unresolved identities enter a review queue with the source names and reason. That makes match coverage visible and auditable.
+> Different sources use different names and levels of detail for the same vehicle. I first created a deterministic normalized key across model years 1900 to current plus one. Then I measured exact matches against EPA and NCAP references with two coverage measures: all valid keys and EPA/NCAP-era-eligible keys. I did not automatically accept fuzzy matches because a wrong vehicle join can create a confident but false dashboard. Instead, unresolved identities enter a prioritized work queue (P0, P1, or P2) with the source names and reason. That makes match coverage visible and auditable.
 
 ## Explain the best DAX lesson
 

@@ -10,7 +10,7 @@ Every analytical table must trace back to one of these sources. Download metadat
 | NHTSA manufacturer communications/TSBs, active snapshot 2025-2026 | Communications from manufacturers concerning defects, failures, malfunctions, and service information. | Emerging service themes, transparent text topics, and documentation volume. | More bulletins can reflect documentation practices, not worse quality. |
 | NHTSA NCAP ratings | Government crashworthiness, rollover, and crash-avoidance test results for tested variants. | Tested safety-rating context and feature coverage. | Not every trim is tested. Rating methodology and comparability vary across model years. NHTSA marks this dataset as not quality-certified. |
 | DOE/EPA FuelEconomy.gov vehicle data | Tested vehicle configurations, MPG/MPGe, annual fuel cost, emissions, powertrain, and class. | Ownership-cost and efficiency context. | Multiple trims/configurations exist for one make/model/year. Aggregation must retain min/median/max and record count. |
-| FHWA motor-vehicle registrations | Annual state-reported registration totals. | State-level exposure context for overall complaint-reporting intensity. | No make/model/year denominator. It cannot support model reliability rates. |
+| FHWA motor-vehicle registrations | Annual state-reported registration totals, currently through calendar year 2024. | State-level exposure context for overall complaint-reporting intensity. | No make/model/year denominator. It cannot support model reliability rates. |
 | BLS used-car CPI via FRED, configured but deferred | Monthly used-car and truck price index. | Optional market context for reporting and recall timelines. It is not part of the current 1,411,783-row snapshot. | Macro correlation is not causal evidence about a particular vehicle. |
 
 Historical 2020-2024 complaint and manufacturer-communication files are configured for a later snapshot extension. They are not counted or claimed in the active Fabric package.
@@ -23,11 +23,15 @@ Every release-1 cross-source identity receives:
 
 - `match_method`: exact normalized reference match or unresolved to reference.
 - `match_confidence`: high or unresolved.
+- `reference_match_status`: MATCHED or UNRESOLVED.
+- `reference_year_eligible`: model year 1984 or later (when EPA/NCAP reference sources begin).
+- `alias_priority` and `alias_reason`: P0/P1/P2 classification for unresolved identities.
+- `rule_version` and `threshold_validation_status`: `portfolio_v1` and `unvalidated` on every rule row.
 - `source_make` and `source_model`: preserved for audit.
 - `normalized_make` and `normalized_model`: standardized values.
 - `review_reason`: populated for identities awaiting alias review.
 
-Unresolved records remain visible in the quality dashboard and are excluded from reference-comparison KPIs by default. Alias or token matching can be added only through a reviewed mapping table with rationale and history.
+Unresolved records remain visible in the quality dashboard and are excluded from reference-comparison KPIs by default. Two coverage measures are published: all valid keys and EPA/NCAP-era-eligible keys. Alias or token matching can be added only through a reviewed mapping table with rationale and history.
 
 ## Claims we will not make
 

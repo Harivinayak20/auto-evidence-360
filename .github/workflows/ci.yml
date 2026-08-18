@@ -1,0 +1,72 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Python syntax check
+        run: |
+          python - <<'EOF'
+          import ast
+          import pathlib
+          files = sorted(pathlib.Path(".").rglob("*.py"))
+          if not files:
+              raise SystemExit("no python files found")
+          for path in files:
+              ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+          print(f"syntax ok: {len(files)} files")
+          EOF
+
+      - name: Repository contract tests
+        run: python -m unittest discover -s tests -v
+
+      - name: JSON validation
+        run: |
+          python - <<'EOF'
+          import json
+          import pathlib
+          files = sorted(pathlib.Path(".").rglob("*.json"))
+          for path in files:
+              json.loads(path.read_text(encoding="utf-8"))
+          print(f"json ok: {len(files)} files")
+          EOF
+
+      - name: Privacy-field scan
+        run: |
+          python - <<'EOF'
+          import json
+          manifest = json.load(open("data/fabric_upload/manifest.json", encoding="utf-8"))
+          forbidden = {"complaint_description", "vin", "vin_prefix", "city",
+                       "dealer_name", "dealer_phone", "vehicle_operator"}
+          for extract in manifest["extracts"]:
+              columns = {column.lower() for column in extract["columns"]}
+              leaked = sorted(forbidden & columns)
+              assert not leaked, f"{extract['table_name']} leaks: {leaked}"
+          print("privacy scan ok")
+          EOF
+
+      - name: Bulk-file guard
+        run: |
+          python - <<'EOF'
+          import pathlib
+          violations = []
+          for path in pathlib.Path(".").rglob("*"):
+              if not path.is_file():
+                  continue
+              rel = path.as_posix()
+              if rel.startswith("data/raw/") or rel.endswith(".csv.gz"):
+                  violations.append(rel)
+          assert not violations, f"bulk files committed: {violations}"
+          print("bulk-file guard ok")
+          EOF

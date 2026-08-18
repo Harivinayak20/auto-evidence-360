@@ -7,11 +7,18 @@
 # No fuzzy match is silently accepted.
 
 # %%
+from datetime import datetime
 from functools import reduce
 
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
 from pyspark.sql import types as T
+
+MIN_MODEL_YEAR = 1900
+MAX_MODEL_YEAR = datetime.now().year + 1
+REFERENCE_ERA_START_YEAR = 1984
+RULE_VERSION = "portfolio_v1"
+THRESHOLD_VALIDATION_STATUS = "unvalidated"
 
 
 def normalized_text(column_name: str):
@@ -44,7 +51,7 @@ def add_vehicle_identity(
     valid_identity = (
         (F.length("normalized_make") > 0)
         & (F.length("normalized_model") > 0)
-        & F.col("model_year_int").between(1900, 2100)
+        & F.col("model_year_int").between(MIN_MODEL_YEAR, MAX_MODEL_YEAR)
     )
     return conformed.withColumn(
         "vehicle_key",
@@ -300,6 +307,14 @@ vehicle_bridge = (
     .fillna({"reference_exact_match_flag": False})
     .withColumn("canonical_vehicle_key", F.col("vehicle_key"))
     .withColumn(
+        "reference_year_eligible",
+        F.col("model_year_int") >= REFERENCE_ERA_START_YEAR,
+    )
+    .withColumn(
+        "reference_match_status",
+        F.when(F.col("reference_exact_match_flag"), "MATCHED").otherwise("UNRESOLVED"),
+    )
+    .withColumn(
         "match_method",
         F.when(F.col("reference_exact_match_flag"), "EXACT_NORMALIZED_MAKE_MODEL_YEAR").otherwise(
             "SOURCE_IDENTITY_UNRESOLVED_TO_REFERENCE"
@@ -309,6 +324,8 @@ vehicle_bridge = (
         "match_confidence",
         F.when(F.col("reference_exact_match_flag"), "HIGH").otherwise("UNRESOLVED"),
     )
+    .withColumn("rule_version", F.lit(RULE_VERSION))
+    .withColumn("threshold_validation_status", F.lit(THRESHOLD_VALIDATION_STATUS))
 )
 write_silver(vehicle_bridge, "silver_vehicle_identity_bridge")
 
@@ -318,9 +335,15 @@ alias_review_queue = (
     .agg(
         F.countDistinct("source_system").alias("source_system_count"),
         F.sort_array(F.collect_set("source_system")).alias("source_systems"),
+        F.max(F.col("reference_year_eligible").cast("int")).cast("boolean").alias(
+            "reference_year_eligible"
+        ),
     )
     .withColumn("review_status", F.lit("UNREVIEWED"))
-    .withColumn("review_reason", F.lit("No exact EPA or NCAP make/model/year reference match"))
+    .withColumn(
+        "review_reason",
+        F.lit("No exact EPA or NCAP make/model/year reference match"),
+    )
 )
 write_silver(alias_review_queue, "silver_vehicle_alias_review_queue")
 
@@ -331,10 +354,23 @@ match_quality = (
         F.countDistinct(F.when(F.col("reference_exact_match_flag"), F.col("vehicle_key"))).alias(
             "reference_exact_match_keys"
         ),
+        F.countDistinct(F.when(F.col("reference_year_eligible"), F.col("vehicle_key"))).alias(
+            "era_eligible_vehicle_keys"
+        ),
+        F.countDistinct(
+            F.when(
+                F.col("reference_year_eligible") & F.col("reference_exact_match_flag"),
+                F.col("vehicle_key"),
+            )
+        ).alias("era_eligible_reference_exact_match_keys"),
     )
     .withColumn(
         "reference_exact_match_rate",
         F.col("reference_exact_match_keys") / F.col("distinct_vehicle_keys"),
+    )
+    .withColumn(
+        "era_eligible_reference_exact_match_rate",
+        F.col("era_eligible_reference_exact_match_keys") / F.col("era_eligible_vehicle_keys"),
     )
 )
 write_silver(match_quality, "audit_silver_entity_match_quality")

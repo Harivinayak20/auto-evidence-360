@@ -16,8 +16,14 @@ The report separates evidence volume, urgent source flags, context coverage, and
 | Context | Median Overall NCAP Stars | Median across tested variants in context | Tested variant | Show rating with coverage |
 | Context | Median Combined MPG | Median across EPA configurations in context | EPA configuration | Explain operating-cost context |
 | Context | Median Annual Fuel Cost | Median EPA annual fuel cost across configurations | EPA configuration | Compare ownership context |
-| Coverage | Reference Exact-Match Rate | Vehicle keys exactly matching EPA/NCAP reference divided by vehicle keys | Distinct vehicle key | Prioritize alias review |
+| Coverage | Reference Exact-Match Rate (All Valid Keys) | Vehicle keys exactly matching EPA/NCAP reference divided by all valid vehicle keys (model years 1900 through current year plus one) | Distinct vehicle key | Prioritize alias review |
+| Coverage | Reference Exact-Match Rate (Era-Eligible Keys) | Same numerator divided by EPA/NCAP-era-eligible keys (model year 1984 or later, when the reference sources begin) | Distinct vehicle key | Remove pre-reference-era keys from the denominator |
+| Coverage | Alias Work Queue P0 | Unresolved identities with do-not-drive, park-outside, or open-investigation evidence | Distinct vehicle key | Review immediately |
+| Coverage | Alias Work Queue P1 | Unresolved identities with multi-source or high-signal evidence | Distinct vehicle key | Review next |
+| Coverage | Alias Work Queue P2 | Unresolved low-signal backlog; shown only in aggregate | Aggregate count | Monitor aggregate only |
 | Coverage | Average Evidence Sources per Vehicle | Average count of source families present per vehicle | Vehicle key | Interpret sparse evidence cautiously |
+| Trust | Rule Version | `portfolio_v1` | Constant | Identify rule lineage |
+| Trust | Threshold Validation Status | `unvalidated` until stakeholder validation | Constant | Do not treat as production policy |
 | Trust | Failed Data Quality Checks | Count of failed Gold uniqueness/orphan checks | Check execution | Stop and investigate |
 
 ## Core contracts
@@ -55,9 +61,17 @@ The report separates evidence volume, urgent source flags, context coverage, and
 ### Reference Exact-Match Rate
 
 - Numerator: distinct normalized make/model/year keys found in EPA or NCAP reference keys.
-- Denominator: distinct source vehicle keys in scope.
+- Denominator: all valid source vehicle keys for the all-valid measure; EPA/NCAP-era-eligible keys (model year 1984 or later) for the era-eligible measure.
 - Exclusion: blank or invalid source identity.
 - Caveat: this measures data integration coverage, not vehicle quality.
+
+### Alias work queue
+
+- The complete unresolved backlog stays in Silver; Gold publishes only P0 and P1 identities as queue entries.
+- P0: unresolved identity with do-not-drive, park-outside, or open-investigation evidence.
+- P1: unresolved identity with multi-source or high-signal evidence (2+ source systems, 10+ complaints, 3+ severe reports, any recall, or 10+ documents).
+- P2: unresolved low-signal identities appear only as an aggregate count.
+- The operational review queue never depends on EPA/NCAP enrichment status.
 
 ## Review-priority rules
 
@@ -72,7 +86,7 @@ The report separates evidence volume, urgent source flags, context coverage, and
 | At least 10 manufacturer documents | Review | Inspect document types and topics |
 | No rule crossed | Monitor | Retain in evidence view; do not label safe |
 
-These rules are transparent operating thresholds for the portfolio scenario. They require stakeholder validation before production use.
+These rules are transparent operating thresholds for the portfolio scenario. They require stakeholder validation before production use. Every rule row carries `rule_version = portfolio_v1` and `threshold_validation_status = unvalidated`.
 
 ## Required breakdowns
 

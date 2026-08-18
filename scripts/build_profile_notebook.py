@@ -22,7 +22,7 @@ notebook["cells"] = [
 
 - The current downloaded snapshot contains **1,411,783 real public-data rows** across seven analytical sources.
 - All seven files matched their documented field counts; the current profile found no malformed rows.
-- Exact normalized make/model/year matching ranges from **15.47% to 64.86%**, proving that controlled entity resolution is a central project requirement.
+- Exact normalized make/model/year matching is published as two measures: all valid keys (model years 1900 through current plus one) and EPA/NCAP-era-eligible keys (model year 1984 or later). Both are shown in the coverage table below; rates vary widely by source, proving that controlled entity resolution is a central project requirement.
 - Public complaint PII-like fields and narratives are excluded from Fabric upload extracts.
 - Complaint and bulletin volume are evidence signals, not make/model reliability rates."""
     ),
@@ -86,7 +86,26 @@ pd.DataFrame({
     ),
     nbf.v4.new_code_cell(
         """match_coverage = pd.DataFrame(profile["cross_source_exact_match_coverage"])
-match_coverage.assign(exact_match_rate=lambda frame: frame["exact_match_rate"].map(lambda value: f"{value:.2%}"))"""
+match_coverage.assign(
+    exact_match_rate=match_coverage["exact_match_rate"].map(lambda value: f"{value:.2%}"),
+    era_eligible_exact_match_rate=match_coverage["era_eligible_exact_match_rate"].map(
+        lambda value: f"{value:.2%}" if value is not None else "n/a"
+    ),
+)"""
+    ),
+    nbf.v4.new_markdown_cell(
+        """The second coverage view shows the union of the four operational sources against the EPA/NCAP reference, again split into all-valid and era-eligible measures:"""
+    ),
+    nbf.v4.new_code_cell(
+        """union_coverage = profile["union_exact_match_coverage"]
+pd.DataFrame([
+    {"measure": "All valid vehicle keys", "keys": union_coverage["all_valid_vehicle_keys"],
+     "exact matches": union_coverage["all_valid_exact_reference_matches"],
+     "rate": f"{union_coverage['all_valid_exact_match_rate']:.2%}"},
+    {"measure": "EPA/NCAP-era-eligible keys", "keys": union_coverage["era_eligible_vehicle_keys"],
+     "exact matches": union_coverage["era_eligible_exact_reference_matches"],
+     "rate": f"{union_coverage['era_eligible_exact_match_rate']:.2%}"},
+])"""
     ),
     nbf.v4.new_markdown_cell(
         """## Takeaways

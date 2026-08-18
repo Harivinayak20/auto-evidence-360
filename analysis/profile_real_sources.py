@@ -87,8 +87,16 @@ def get_value(row: list[str], field: int | str | None, header_map: dict[str, int
     return row[index].strip() if index < len(row) else ""
 
 
+MIN_MODEL_YEAR = 1900
+REFERENCE_ERA_START_YEAR = 1984
+
+
 def valid_model_year(value: str) -> bool:
-    return value.isdigit() and 1984 <= int(value) <= MAX_MODEL_YEAR
+    return value.isdigit() and MIN_MODEL_YEAR <= int(value) <= MAX_MODEL_YEAR
+
+
+def reference_year_eligible(year_value: str) -> bool:
+    return year_value.isdigit() and int(year_value) >= REFERENCE_ERA_START_YEAR
 
 
 def date_bounds_update(value: str, current_min: str | None, current_max: str | None) -> tuple[str | None, str | None]:
@@ -216,19 +224,41 @@ def main() -> None:
         "nhtsa_complaints", "nhtsa_recalls", "nhtsa_investigations", "nhtsa_manufacturer_communications"
     ]:
         source_keys = keys_by_source.get(source_id, set())
+        era_eligible_keys = {key for key in source_keys if reference_year_eligible(key.rsplit("|", 1)[-1])}
         matched = source_keys & reference_keys
+        era_matched = era_eligible_keys & reference_keys
         match_coverage.append({
             "source_id": source_id,
             "distinct_vehicle_keys": len(source_keys),
             "exact_reference_matches": len(matched),
             "exact_match_rate": len(matched) / len(source_keys) if source_keys else None,
+            "era_eligible_vehicle_keys": len(era_eligible_keys),
+            "era_eligible_exact_reference_matches": len(era_matched),
+            "era_eligible_exact_match_rate": len(era_matched) / len(era_eligible_keys) if era_eligible_keys else None,
         })
+
+    all_operational_keys = set()
+    all_era_eligible_keys = set()
+    for source_id in ["nhtsa_complaints", "nhtsa_recalls", "nhtsa_investigations", "nhtsa_manufacturer_communications"]:
+        source_keys = keys_by_source.get(source_id, set())
+        all_operational_keys |= source_keys
+        all_era_eligible_keys |= {key for key in source_keys if reference_year_eligible(key.rsplit("|", 1)[-1])}
 
     payload = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "profile_scope": "downloaded public source files; no row content emitted",
+        "model_year_window": {"min": MIN_MODEL_YEAR, "max": MAX_MODEL_YEAR},
+        "reference_era_start_year": REFERENCE_ERA_START_YEAR,
         "datasets": profiles,
         "cross_source_exact_match_coverage": match_coverage,
+        "union_exact_match_coverage": {
+            "all_valid_vehicle_keys": len(all_operational_keys),
+            "all_valid_exact_reference_matches": len(all_operational_keys & reference_keys),
+            "all_valid_exact_match_rate": (len(all_operational_keys & reference_keys) / len(all_operational_keys)) if all_operational_keys else None,
+            "era_eligible_vehicle_keys": len(all_era_eligible_keys),
+            "era_eligible_exact_reference_matches": len(all_era_eligible_keys & reference_keys),
+            "era_eligible_exact_match_rate": (len(all_era_eligible_keys & reference_keys) / len(all_era_eligible_keys)) if all_era_eligible_keys else None,
+        },
         "privacy_exclusions": {
             "nhtsa_complaints": [
                 "CITY", "VIN", "CDESCR", "DEALER_NAME", "DEALER_TEL", "DEALER_CITY",
@@ -270,15 +300,20 @@ def main() -> None:
         "",
         "## Exact cross-source vehicle-key coverage",
         "",
-        "Reference is the union of normalized EPA and NCAP make/model/year keys. This is the baseline before alias or token matching.",
+        "Valid model years span 1900 through the current year plus one. The reference set is the union of normalized EPA and NCAP make/model/year keys. This is the baseline before alias or token matching.",
         "",
-        "| Source | Distinct keys | Exact matches | Exact match rate |",
-        "|---|---:|---:|---:|",
+        "Two coverage measures are published: all valid operational keys, and EPA/NCAP-era-eligible keys (model year 1984 or later, when the reference sources begin).",
+        "",
+        "| Source | Distinct keys | Exact matches | Exact match rate | Era-eligible keys | Era-eligible matches | Era-eligible match rate |",
+        "|---|---:|---:|---:|---:|---:|---:|",
     ]
     for match in match_coverage:
         markdown.append(
             f"| {match['source_id']} | {match['distinct_vehicle_keys']:,} | "
-            f"{match['exact_reference_matches']:,} | {format_pct(match['exact_match_rate'])} |"
+            f"{match['exact_reference_matches']:,} | {format_pct(match['exact_match_rate'])} | "
+            f"{match['era_eligible_vehicle_keys']:,} | "
+            f"{match['era_eligible_exact_reference_matches']:,} | "
+            f"{format_pct(match['era_eligible_exact_match_rate'])} |"
         )
 
     markdown += [
@@ -287,6 +322,7 @@ def main() -> None:
         "",
         "- Repeated NHTSA business IDs can be legitimate because one complaint, campaign, investigation, or bulletin may cover multiple components or vehicles.",
         "- Low exact match coverage is an entity-resolution requirement, not permission to use fuzzy matches silently.",
+        "- The era-eligible measure removes pre-1984 keys that no EPA or NCAP reference could ever match.",
         "- Complaint counts are self-reported public-record volume. They are not failure rates without make/model/year exposure data.",
         "- Sensitive complaint fields are excluded before the conformed layer.",
     ]
