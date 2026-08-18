@@ -51,7 +51,7 @@ Included:
 - Batch ingestion, medallion transformations, provenance, privacy minimization, and quality gates.
 - Deterministic make/model/year identity keys and an unresolved alias review queue.
 - Transparent rule-based text topics on manufacturer and agency descriptions.
-- Direct Lake semantic model, Power BI diagnostics, drill-through, and review queue.
+- Local lakehouse (DuckDB) pipeline with curated exports, Tableau Public workbook, and cloud-ready Fabric/PySpark variants.
 
 Excluded from the first release:
 
@@ -77,20 +77,20 @@ Thresholds are portfolio operating rules to validate with stakeholders. They are
 
 ## Acceptance criteria
 
-- A reviewer can explain the decision in 30 seconds without saying “AI safety score.”
+- A reviewer can explain the decision in 30 seconds without saying "AI safety score."
 - Every uploaded row traces to a source ID and SHA-256 checksum.
-- No complaint narrative, VIN fragment, contact field, city, or vehicle-operator field enters Fabric.
+- No complaint narrative, VIN fragment, contact field, city, or vehicle-operator field enters any published layer.
 - Bronze fails on missing files, schema drift, or manifest row-count mismatch.
 - Silver reports exact-reference match coverage and exposes unresolved aliases.
 - Gold dimensions are unique and every non-null fact vehicle key resolves.
-- DAX counts distinct business entities instead of raw duplicated rows.
-- Power BI shows source coverage and caveats beside review signals.
-- A recruiter can inspect the source register, executed quality notebook, model, DAX, and five distinct project stories.
+- Metrics count distinct business entities instead of raw duplicated rows.
+- The dashboard shows source coverage and caveats beside review signals.
+- A recruiter can inspect the source register, executed quality notebook, pipeline code, curated exports, and five distinct project stories.
 
 ## Delivery sequence
 
 1. Source governance and reproducible snapshot.
-2. Fabric Bronze, Silver, identity bridge, and Gold decision mart.
-3. Power BI semantic model and seven-page report.
+2. Local lakehouse Bronze, Silver, identity bridge, and Gold decision mart with nightly CI.
+3. Curated exports and Tableau Public workbook (cloud-ready Fabric/PySpark variants included).
 4. Finding validation, screenshots, and narrated demo.
 5. Five-post LinkedIn case-study release.

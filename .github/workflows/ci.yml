@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: "0 3 * * *"
 
 jobs:
   checks:
@@ -65,8 +67,37 @@ jobs:
               if not path.is_file():
                   continue
               rel = path.as_posix()
-              if rel.startswith("data/raw/") or rel.endswith(".csv.gz"):
-                  violations.append(rel)
+              if rel.startswith("data/raw/") or path.stat().st_size > 50_000_000:
+                  violations.append((rel, path.stat().st_size))
           assert not violations, f"bulk files committed: {violations}"
           print("bulk-file guard ok")
           EOF
+
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pipeline dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run the full local lakehouse pipeline
+        run: python src/local/run_pipeline.py --db /tmp/auto_evidence_360.duckdb --data data/fabric_upload --export /tmp/curated
+
+      - name: Pipeline contract tests
+        env:
+          AUTO_EVIDENCE_DB: /tmp/auto_evidence_360.duckdb
+          AUTO_EVIDENCE_EXPORT: /tmp/curated
+        run: python -m unittest tests.test_pipeline_local -v
+
+      - name: Upload curated exports
+        if: github.event_name == 'schedule'
+        uses: actions/upload-artifact@v4
+        with:
+          name: curated-tableau-exports
+          path: /tmp/curated/*.parquet
+          retention-days: 14

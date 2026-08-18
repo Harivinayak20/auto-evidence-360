@@ -2,10 +2,13 @@
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+.venv/
 
-# Reproducible source and derived data are generated locally, not stored in Git.
+# Raw upstream downloads are re-fetchable via scripts/download_source_data.py.
 data/raw/
-data/fabric_upload/*.csv.gz
+
+# The local lakehouse is rebuilt by src/local/run_pipeline.py.
+data/lakehouse/
 analysis/output/vehicle_evidence_baseline.csv.gz
 
 # Keep only the retirement note from the superseded synthetic prototype.

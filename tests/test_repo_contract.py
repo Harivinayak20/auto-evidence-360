@@ -1,11 +1,11 @@
 """Clean-clone repository contract tests.
 
-These tests run from a fresh clone without the ignored bulk data package
-(data/raw and data/fabric_upload/*.csv.gz are not committed). They verify
-that the committed manifests, evidence, guards, and documented paths stay
-consistent.
+These tests run from a fresh clone. The approved extracts are committed so the
+pipeline is reproducible with one command; raw upstream downloads
+(data/raw) and the local lakehouse (data/lakehouse) are rebuilt locally.
 """
 
+import hashlib
 import json
 import re
 import unittest
@@ -87,10 +87,23 @@ class RepoContractTests(unittest.TestCase):
         self.assertGreaterEqual(counts.get("P1", 0), 0)
         self.assertGreaterEqual(counts.get("P2", 0), 0)
 
-    def test_gitignore_blocks_bulk_data_and_generated_extracts(self):
+    def test_committed_extracts_match_manifest_hashes(self):
+        manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        for extract in manifest["extracts"]:
+            path = UPLOAD_ROOT / f"{extract['table_name']}.csv.gz"
+            self.assertTrue(path.is_file(), f"missing committed extract: {path.name}")
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            self.assertEqual(
+                digest,
+                extract["output_sha256"],
+                f"extract drift: {path.name} no longer matches the manifest",
+            )
+
+    def test_gitignore_blocks_raw_downloads_and_local_lakehouse(self):
         rules = GITIGNORE_PATH.read_text(encoding="utf-8").splitlines()
         self.assertTrue(any("data/raw" in rule for rule in rules))
-        self.assertTrue(any("*.csv.gz" in rule for rule in rules))
+        self.assertTrue(any("data/lakehouse" in rule for rule in rules))
+        self.assertFalse(any("*.csv.gz" in rule for rule in rules))
 
     def test_license_and_ci_exist(self):
         self.assertTrue(LICENSE_PATH.is_file())
@@ -104,17 +117,13 @@ class RepoContractTests(unittest.TestCase):
         self.assertEqual([], missing, f"README references missing files: {missing}")
 
     def test_no_bulk_data_tracked(self):
-        ignored = [".gitignore"]
-        tracked_candidates = [
-            path for path in [UPLOAD_ROOT, PROJECT_ROOT / "data" / "raw"] if path.exists()
-        ]
-        for directory in tracked_candidates:
-            for path in directory.rglob("*"):
-                if path.is_file() and path.name not in ignored:
-                    self.assertTrue(
-                        path.is_relative_to(directory),
-                        f"unexpected file in committed area: {path}",
-                    )
+        tracked = set(
+            str(path.relative_to(PROJECT_ROOT))
+            for path in PROJECT_ROOT.rglob("*")
+            if path.is_file() and ".git" not in path.parts
+        )
+        violations = [rel for rel in tracked if rel.startswith("data/raw/")]
+        self.assertEqual([], violations, f"raw downloads tracked: {violations}")
 
 
 if __name__ == "__main__":

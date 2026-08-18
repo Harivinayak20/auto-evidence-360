@@ -4,7 +4,7 @@ Every analytical table must trace back to one of these sources. Download metadat
 
 | Source | What it establishes | Planned use | Important limitation |
 |---|---|---|---|
-| NHTSA consumer complaints, active snapshot 2025-2026 | Reports submitted to NHTSA about alleged vehicle problems, including component, crash, fire, and injury indicators. | Report trends, severe-outcome signals, and component patterns. Narratives are excluded before Fabric upload. | Self-reported complaints are not verified failures and are not a reliability rate. Reporting propensity varies. |
+| NHTSA consumer complaints, active snapshot 2025-2026 | Reports submitted to NHTSA about alleged vehicle problems, including component, crash, fire, and injury indicators. | Report trends, severe-outcome signals, and component patterns. Narratives are excluded before any publish or upload. | Self-reported complaints are not verified failures and are not a reliability rate. Reporting propensity varies. |
 | NHTSA recalls, post-2010 | Safety recall campaigns, affected products, components, consequence, remedy, and potentially affected units. | Recall burden, affected components, remedy language, campaign timeline. | One campaign may repeat across multiple vehicle/product rows. Count distinct campaigns separately from rows. A campaign record does not show whether a specific VIN was repaired. |
 | NHTSA investigations | Formal defect-investigation records and status. | Escalation signal and investigation lifecycle. | Investigation scope does not mean every covered vehicle has a defect. |
 | NHTSA manufacturer communications/TSBs, active snapshot 2025-2026 | Communications from manufacturers concerning defects, failures, malfunctions, and service information. | Emerging service themes, transparent text topics, and documentation volume. | More bulletins can reflect documentation practices, not worse quality. |
@@ -13,7 +13,7 @@ Every analytical table must trace back to one of these sources. Download metadat
 | FHWA motor-vehicle registrations | Annual state-reported registration totals, currently through calendar year 2024. | State-level exposure context for overall complaint-reporting intensity. | No make/model/year denominator. It cannot support model reliability rates. |
 | BLS used-car CPI via FRED, configured but deferred | Monthly used-car and truck price index. | Optional market context for reporting and recall timelines. It is not part of the current 1,411,783-row snapshot. | Macro correlation is not causal evidence about a particular vehicle. |
 
-Historical 2020-2024 complaint and manufacturer-communication files are configured for a later snapshot extension. They are not counted or claimed in the active Fabric package.
+Historical 2020-2024 complaint and manufacturer-communication files are configured for a later snapshot extension. They are not counted or claimed in the active extract package.
 
 ## Joining contract
 
