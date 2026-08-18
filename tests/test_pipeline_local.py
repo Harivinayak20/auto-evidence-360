@@ -14,9 +14,14 @@ import unittest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "src" / "local"))
 
-import duckdb
+try:
+    import duckdb
 
-import run_pipeline
+    import run_pipeline
+
+    HAS_DUCKDB = True
+except ImportError:
+    HAS_DUCKDB = False
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
 DATA_DIR = REPO_ROOT / "data" / "fabric_upload"
@@ -32,7 +37,8 @@ REUSE_EXPORT = os.environ.get("AUTO_EVIDENCE_EXPORT")
 
 
 @unittest.skipUnless(
-    (DATA_DIR / "manifest.json").exists(), "approved extracts not present in data/fabric_upload"
+    HAS_DUCKDB and (DATA_DIR / "manifest.json").exists(),
+    "duckdb and the approved extracts are required",
 )
 class TestPipelineLocal(unittest.TestCase):
     @classmethod
