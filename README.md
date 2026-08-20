@@ -6,7 +6,7 @@
 |---|---|
 | Local lakehouse pipeline (Bronze/Silver/Gold) | Complete, CI-run nightly on the real data, reconciled to the independent baseline |
 | Curated Tableau exports | Complete (`data/tableau_public/`) |
-| Tableau Public workbook | Staged (blueprint + calculated fields in `docs/TABLEAU_BLUEPRINT.md`), publish with owner approval |
+| Tableau Public workbook | Live: [Auto Evidence 360 - Review Priority](https://public.tableau.com/app/profile/hari.vinayak.darga/viz/AutoEvidence360-ReviewPriority/Dashboard1) |
 | Cloud-ready Fabric notebooks | Reference code in `src/fabric/notebooks/` (runs unchanged in a Fabric Lakehouse) |
 | Public GitHub release | This repository |
 | LinkedIn series | Staged drafts in `docs/LINKEDIN_SERIES.md`, published only with owner approval |

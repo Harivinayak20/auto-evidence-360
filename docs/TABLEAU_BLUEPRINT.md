@@ -63,8 +63,14 @@ Use the ranks for sort order everywhere; keep the labels as the display text.
 1. Tableau Public Desktop (free, Mac and Windows) -> sign in.
 2. File -> New -> connect to the three Parquet files.
 3. Build the dashboards, then File -> Save to Tableau Public As.
-4. Workbook name: "Auto Evidence 360 - Public Review Priority".
+4. Workbook name: "Auto Evidence 360 - Review Priority".
 5. Publish with "Show sheets as tabs" enabled.
+
+## Live workbook
+
+- URL: https://public.tableau.com/app/profile/hari.vinayak.darga/viz/AutoEvidence360-ReviewPriority/Dashboard1
+- Views: Review Priority (executive), Alias Queue & Trust, Evidence Detail, plus the underlying sheets.
+- Note: Tableau Public 2026.2 no longer offers the footer Text object in the dashboard pane; the unvalidated-rule disclaimer lives in this repo instead.
 
 ## QA checklist before publish
 
